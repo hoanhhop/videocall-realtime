@@ -1,0 +1,99 @@
+# Node.js
+node_modules/
+**/node_modules/
+npm-debug.log
+yarn-error.log
+.pnp/
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv_tts/
+.env
+.venv
+env/
+ENV/
+.coverage
+htmlcov/
+
+# Build files
+dist/
+build/
+out/
+client/dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+.yarn/
+.pnp/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Machine Learning models
+models/phowhisper/
+models/opus_mt/
+models/tts/
+models/embeddings/
+models/envit5/
+models/**/*.bin
+models/**/*.pt
+models/**/*.onnx
+
+# Temp files
+temp/
+server/temp/
+*.tmp
+*.temp
+
+# Traefik
+traefik-logs/
+.cache/
+
+# Docker
+.dockerignore
+
+# Deprecated/duplicate directories (for reference only, do not delete)
+# server/services/tts/
+# server/services/translation/
+
+# Binary archives
+*.tar.gz
+*.tgz
+
+# Local cache directories
+embeddings-cache/
+phowhisper-cache/
+translation-cache/
+tts-cache/
+
+# Large binary dumps
+vm_server_code.tar.gz
+
+# Model checkpoints
+*.safetensors
+*.pth
+
+# Ignore server-side model weights
+server/models/
