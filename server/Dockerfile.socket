@@ -1,0 +1,58 @@
+FROM node:18-slim as builder
+
+# Cài đặt dependencies cần thiết bao gồm build tools cho bcrypt
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    libsndfile1 \
+    espeak-ng \
+    build-essential \
+    python3-dev \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Sao chép package.json trước để tận dụng cache
+COPY package*.json ./
+RUN npm install
+
+# Sao chép source code
+COPY . .
+
+# Build nếu cần
+RUN npm run build --if-present
+
+# Stage 2: Tạo image cuối cùng gọn hơn
+FROM node:18-slim
+
+# Cài đặt dependencies cần thiết cho production (optimized)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    libsndfile1 \
+    espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Sao chép package.json và package-lock.json
+COPY package*.json ./
+RUN npm install --only=production
+
+# Sao chép code từ builder
+COPY --from=builder /app .
+
+# Tạo thư mục models cho OPUS-MT, không cần EnVi-T5
+RUN mkdir -p /app/models/opus_mt
+
+# Thiết lập môi trường
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Mở cổng
+EXPOSE 4000
+
+# Khởi động ứng dụng Socket server
+CMD ["node", "socket/server.js"]

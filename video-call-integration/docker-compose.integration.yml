@@ -1,0 +1,143 @@
+# Video Call Integration - Docker Compose
+# Tích hợp với hệ thống translation hiện có
+
+version: '3.8'
+
+services:
+  # Video Call Integration Server
+  video-call-integration:
+    build:
+      context: ./video-call-integration/server
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      
+      # Database Configuration
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=hommy_database
+      
+      # JWT Configuration
+      - JWT_SECRET=${JWT_SECRET:-video-call-integration-secret-key}
+      - JWT_EXPIRES_IN=24h
+      
+      # CORS Configuration
+      - ALLOWED_ORIGINS=https://34.142.175.163,http://localhost:3000
+      
+      # WebRTC Configuration
+      - STUN_SERVER=stun:stun.l.google.com:19302
+      
+      # Integration with existing translation services
+      - TRANSLATION_API_URL=http://api:5000/api
+      - SOCKET_SERVER_URL=http://socket:5001
+      - PHOWHISPER_ASR_URL=http://phowhisper:50051
+      - TRANSLATION_SERVICE_URL=http://translation:50052
+      - TTS_SERVICE_URL=http://tts:5002
+      - EMBEDDING_SERVICE_URL=http://embeddings:5003
+      - REDIS_URL=redis://redis:6379
+      
+      # Logging
+      - LOG_LEVEL=info
+      - LOG_FILE=/app/logs/server.log
+    
+    volumes:
+      - ./video-call-integration/server:/app
+      - video-call-logs:/app/logs
+      - ./video-call-integration/database:/app/database
+    
+    networks:
+      - translation-network
+      - video-call-network
+    
+    depends_on:
+      - mysql
+      - redis
+      - api
+      - socket
+    
+    restart: unless-stopped
+    
+    command: ["node", "integrationServer.js"]
+
+  # MySQL Database for video call integration
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-}
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_DATABASE=hommy_database
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+    
+    ports:
+      - "127.0.0.1:3306:3306"
+    
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./video-call-integration/database/migration.sql:/docker-entrypoint-initdb.d/01-migration.sql
+      - ./video-call-integration/database/setup.sql:/docker-entrypoint-initdb.d/02-setup.sql
+    
+    networks:
+      - video-call-network
+    
+    restart: unless-stopped
+    
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Nginx Reverse Proxy for unified access
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    
+    networks:
+      - translation-network
+      - video-call-network
+    
+    depends_on:
+      - api
+      - socket
+      - client
+      - video-call-integration
+    
+    restart: unless-stopped
+
+volumes:
+  # Existing volumes from translation system
+  redis-data:
+    external: true
+  phowhisper-cache:
+    external: true
+  translation-cache:
+    external: true
+  tts-cache:
+    external: true
+  embeddings-cache:
+    external: true
+  
+  # New volumes for video call integration
+  mysql-data:
+    driver: local
+  video-call-logs:
+    driver: local
+  nginx-logs:
+    driver: local
+
+networks:
+  # Existing network from translation system
+  translation-network:
+    external: true
+  
+  # New network for video call integration
+  video-call-network:
+    driver: bridge

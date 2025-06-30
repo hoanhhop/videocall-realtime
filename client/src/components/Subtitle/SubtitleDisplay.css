@@ -1,0 +1,66 @@
+/* SubtitleDisplay.css - Phụ đề overlay trên video */
+
+.subtitle-container {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: subtitleFadeIn 0.3s ease-out;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.subtitle-container.local {
+  background: rgba(52, 152, 219, 0.9); /* Xanh dương cho văn bản gốc */
+  border-color: rgba(52, 152, 219, 0.3);
+}
+
+.subtitle-container.remote {
+  background: rgba(46, 204, 113, 0.9); /* Xanh lá cho bản dịch */
+  border-color: rgba(46, 204, 113, 0.3);
+}
+
+.subtitle-text {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.subtitle-placeholder {
+  opacity: 0.7;
+  font-style: italic;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Animation khi phụ đề xuất hiện */
+@keyframes subtitleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.subtitle-container.visible {
+  opacity: 1;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+  .subtitle-container {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  
+  .subtitle-placeholder {
+    font-size: 10px;
+  }
+}

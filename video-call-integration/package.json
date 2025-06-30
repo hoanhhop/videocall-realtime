@@ -1,0 +1,25 @@
+{
+  "name": "video-call-integration",
+  "version": "1.0.0",
+  "description": "Video Call Translation Integration Components for existing React website",
+  "main": "index.js",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.7.2",
+    "lucide-react": "^0.263.1",
+    "axios": "^1.4.0"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "keywords": [
+    "video-call",
+    "translation",
+    "react",
+    "integration"
+  ],
+  "author": "Video Call Translation Team",
+  "license": "MIT"
+}

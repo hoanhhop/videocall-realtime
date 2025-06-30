@@ -1,0 +1,36 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Cài đặt các gói phụ thuộc để build (nếu cần cho dependencies)
+RUN apk add --no-cache python3 make g++ tzdata
+
+# Thiết lập timezone
+ENV TZ=Asia/Ho_Chi_Minh
+
+# Sao chép package.json và package-lock.json từ gốc dự án
+COPY server/package*.json ./
+
+# Cài đặt dependencies
+RUN npm ci
+
+# Sao chép source code server
+COPY server/socket ./socket
+COPY server/utils ./utils
+COPY server/config ./config
+COPY server/models ./models
+COPY server/services ./services
+COPY server/controllers ./controllers
+COPY server/routes ./routes
+COPY server/protos ./protos
+COPY server/socket_server.js ./
+
+# Expose cổng mặc định
+EXPOSE 5001
+
+# Thiết lập biến môi trường
+ENV NODE_ENV=production
+ENV PORT=5001
+
+# Khởi động socket server
+CMD ["node", "socket_server.js"]

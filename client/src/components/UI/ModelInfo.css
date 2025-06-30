@@ -1,0 +1,22 @@
+.model-info {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.model-info h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.info-content {
+  color: #666;
+}
+
+.info-content p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}

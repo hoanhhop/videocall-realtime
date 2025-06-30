@@ -1,0 +1,138 @@
+/* VideoCallModal.css - Styles for the video call modal */
+
+.video-call-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+
+.video-call-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 1000px;
+  height: 700px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.video-call-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.call-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.partner-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #10b981;
+}
+
+.partner-info h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.call-status {
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.modal-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-control {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.modal-control:hover {
+  background: rgba(107, 114, 128, 0.2);
+  color: #374151;
+}
+
+.modal-control.close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.video-call-modal-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .video-call-modal {
+    width: 95vw;
+    height: 85vh;
+    border-radius: 12px;
+  }
+  
+  .video-call-modal-header {
+    padding: 12px 16px;
+  }
+  
+  .partner-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .partner-info h3 {
+    font-size: 14px;
+  }
+  
+  .call-status {
+    font-size: 11px;
+  }
+}

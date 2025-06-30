@@ -1,0 +1,48 @@
+# Quick VM Deploy Commands
+# SSH to VM: ssh hopboy553@34.126.167.181
+# Then copy and paste these commands one by one:
+
+# 1. Check current status
+cd /home/hopboy553/video-call-translation_OFFICIAL
+pwd
+ls -la
+
+# 2. Check Docker
+docker --version
+docker-compose --version
+
+# 3. Check system resources
+free -h
+
+# 4. Stop any running containers
+docker-compose -f docker-compose.production.yml down --remove-orphans
+
+# 5. Check if docker-compose file exists and is correct
+head -10 docker-compose.production.yml
+
+# 6. Build only essential services first (test build)
+docker-compose -f docker-compose.production.yml build --no-cache api
+
+# If API builds successfully, continue with:
+docker-compose -f docker-compose.production.yml build --no-cache socket
+docker-compose -f docker-compose.production.yml build --no-cache client
+
+# 7. Pull infrastructure
+docker-compose -f docker-compose.production.yml pull traefik redis
+
+# 8. Start step by step
+docker-compose -f docker-compose.production.yml up -d traefik redis
+
+# Wait 10 seconds, then check
+docker-compose -f docker-compose.production.yml ps
+
+# 9. Start app services
+docker-compose -f docker-compose.production.yml up -d api socket client
+
+# 10. Check final status
+docker-compose -f docker-compose.production.yml ps
+docker-compose -f docker-compose.production.yml logs --tail=20
+
+# 11. Test
+curl -I http://localhost:8080/dashboard/
+curl -I http://localhost/

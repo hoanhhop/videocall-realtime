@@ -1,0 +1,57 @@
+FROM node:18-slim as builder
+
+# Install build dependencies for native modules like bcrypt
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    libsndfile1 \
+    espeak-ng \
+    build-essential \
+    python3-dev \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install all dependencies including dev dependencies for building native modules
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build if needed
+RUN npm run build --if-present
+
+# Stage 2: Production image
+FROM node:18-slim
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    libsndfile1 \
+    espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built application from builder stage (includes node_modules with bcrypt)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app .
+
+# Create models directory
+RUN mkdir -p /app/models/opus_mt
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Expose port
+EXPOSE 4000
+
+# Start application
+CMD ["node", "socket/server.js"]

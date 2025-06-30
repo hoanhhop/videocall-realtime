@@ -1,0 +1,1248 @@
+/* Video Call Integration Styles */
+
+/* Root Variables */
+:root {
+  --vci-primary-color: #007bff;
+  --vci-secondary-color: #6c757d;
+  --vci-success-color: #28a745;
+  --vci-danger-color: #dc3545;
+  --vci-warning-color: #ffc107;
+  --vci-info-color: #17a2b8;
+  --vci-light-color: #f8f9fa;
+  --vci-dark-color: #343a40;
+  --vci-white: #ffffff;
+  --vci-border-radius: 8px;
+  --vci-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --vci-transition: all 0.3s ease;
+}
+
+/* Main Container */
+.video-call-integration {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+  background: var(--vci-light-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.video-call-integration__header {
+  background: var(--vci-white);
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--vci-box-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.video-call-integration__brand {
+  display: flex;
+  align-items: center;
+}
+
+.video-call-integration__title {
+  margin: 0;
+  color: var(--vci-primary-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.video-call-integration__nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.video-call-integration__nav-btn {
+  background: none;
+  border: 1px solid var(--vci-primary-color);
+  color: var(--vci-primary-color);
+  padding: 0.5rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+  font-weight: 500;
+}
+
+.video-call-integration__nav-btn:hover {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+}
+
+.video-call-integration__nav-btn--active {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+}
+
+.video-call-integration__user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.video-call-integration__user-name {
+  font-weight: 500;
+  color: var(--vci-dark-color);
+}
+
+.video-call-integration__logout-btn {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+  font-weight: 500;
+}
+
+.video-call-integration__logout-btn:hover {
+  background: #c82333;
+}
+
+/* Notifications */
+.video-call-integration__notifications {
+  position: fixed;
+  top: 80px;
+  right: 1rem;
+  z-index: 1000;
+  max-width: 350px;
+}
+
+.video-call-integration__notification {
+  background: var(--vci-white);
+  border-left: 4px solid var(--vci-info-color);
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: var(--vci-border-radius);
+  box-shadow: var(--vci-box-shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  animation: slideIn 0.3s ease;
+}
+
+.video-call-integration__notification--error {
+  border-left-color: var(--vci-danger-color);
+}
+
+.video-call-integration__notification--success {
+  border-left-color: var(--vci-success-color);
+}
+
+.video-call-integration__notification--warning {
+  border-left-color: var(--vci-warning-color);
+}
+
+.video-call-integration__notification-content {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--vci-dark-color);
+}
+
+.video-call-integration__notification-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--vci-secondary-color);
+  padding: 0;
+  margin-left: 1rem;
+}
+
+.video-call-integration__notification-close:hover {
+  color: var(--vci-dark-color);
+}
+
+/* Warning */
+.video-call-integration__warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: var(--vci-border-radius);
+  padding: 1.5rem;
+  margin: 1rem 2rem;
+  color: #856404;
+}
+
+.video-call-integration__warning-content h3 {
+  margin-top: 0;
+  color: var(--vci-warning-color);
+}
+
+.video-call-integration__warning-content ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+/* Content */
+.video-call-integration__content {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* Footer */
+.video-call-integration__footer {
+  background: var(--vci-white);
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 2rem;
+  margin-top: auto;
+}
+
+.video-call-integration__footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.video-call-integration__footer-text {
+  margin: 0;
+  color: var(--vci-secondary-color);
+  font-size: 0.9rem;
+}
+
+.video-call-integration__status-indicator {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Floating Call Button */
+.video-call-integration__floating-call-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--vci-success-color);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: var(--vci-transition);
+  z-index: 1000;
+}
+
+.video-call-integration__floating-call-btn:hover {
+  background: #218838;
+  transform: scale(1.1);
+}
+
+/* ========== AUTHENTICATION COMPONENT ========== */
+
+.video-call-auth {
+  max-width: 400px;
+  margin: 2rem auto;
+}
+
+.video-call-auth__container {
+  background: var(--vci-white);
+  padding: 2rem;
+  border-radius: var(--vci-border-radius);
+  box-shadow: var(--vci-box-shadow);
+}
+
+.video-call-auth__title {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--vci-dark-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.video-call-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.video-call-auth__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-call-auth__label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--vci-dark-color);
+}
+
+.video-call-auth__input {
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: var(--vci-border-radius);
+  font-size: 1rem;
+  transition: var(--vci-transition);
+}
+
+.video-call-auth__input:focus {
+  outline: none;
+  border-color: var(--vci-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.video-call-auth__input--error {
+  border-color: var(--vci-danger-color);
+}
+
+.video-call-auth__error {
+  color: var(--vci-danger-color);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.video-call-auth__error--general {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: var(--vci-border-radius);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.video-call-auth__submit-btn {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+  border: none;
+  padding: 0.75rem;
+  border-radius: var(--vci-border-radius);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--vci-transition);
+  margin-top: 0.5rem;
+}
+
+.video-call-auth__submit-btn:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.video-call-auth__submit-btn:disabled {
+  background: var(--vci-secondary-color);
+  cursor: not-allowed;
+}
+
+.video-call-auth__footer {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.video-call-auth__note {
+  color: var(--vci-secondary-color);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Logged in state */
+.video-call-auth--logged-in {
+  max-width: 300px;
+  margin: 1rem auto;
+}
+
+.video-call-auth__profile {
+  background: var(--vci-white);
+  padding: 1.5rem;
+  border-radius: var(--vci-border-radius);
+  box-shadow: var(--vci-box-shadow);
+  text-align: center;
+}
+
+.video-call-auth__welcome {
+  margin: 0 0 0.5rem 0;
+  color: var(--vci-dark-color);
+  font-size: 1.2rem;
+}
+
+.video-call-auth__email {
+  margin: 0 0 1rem 0;
+  color: var(--vci-secondary-color);
+  font-size: 0.9rem;
+}
+
+.video-call-auth__logout-btn {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+}
+
+.video-call-auth__logout-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* ========== VIDEO CALL COMPONENT ========== */
+
+.video-call {
+  background: var(--vci-white);
+  border-radius: var(--vci-border-radius);
+  box-shadow: var(--vci-box-shadow);
+  overflow: hidden;
+}
+
+.video-call__header {
+  background: var(--vci-dark-color);
+  color: var(--vci-white);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.video-call__call-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.video-call__duration {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--vci-success-color);
+}
+
+.video-call__status {
+  font-size: 0.9rem;
+  color: #adb5bd;
+}
+
+.video-call__connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.video-call__connection-indicator {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+.video-call__connection-indicator.connected {
+  background: var(--vci-success-color);
+  color: var(--vci-white);
+}
+
+.video-call__connection-indicator.disconnected {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+}
+
+.video-call__video-container {
+  position: relative;
+  background: #000;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-call__remote-video {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.video-call__local-video {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 200px;
+  height: 150px;
+  border: 2px solid var(--vci-white);
+  border-radius: var(--vci-border-radius);
+  overflow: hidden;
+  background: #000;
+}
+
+.video-call__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-call__video--remote {
+  min-height: 400px;
+}
+
+.video-call__no-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--vci-white);
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.video-call__controls {
+  padding: 1rem;
+  background: var(--vci-light-color);
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.video-call__btn {
+  background: var(--vci-white);
+  border: 1px solid #ced4da;
+  padding: 0.75rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.video-call__btn:hover:not(:disabled) {
+  background: var(--vci-light-color);
+  border-color: var(--vci-primary-color);
+}
+
+.video-call__btn:disabled {
+  background: #e9ecef;
+  color: var(--vci-secondary-color);
+  cursor: not-allowed;
+}
+
+.video-call__btn--disabled {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border-color: var(--vci-danger-color);
+}
+
+.video-call__btn--active {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+  border-color: var(--vci-primary-color);
+}
+
+.video-call__btn--start {
+  background: var(--vci-success-color);
+  color: var(--vci-white);
+  border-color: var(--vci-success-color);
+}
+
+.video-call__btn--start:hover:not(:disabled) {
+  background: #218838;
+}
+
+.video-call__btn--end {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border-color: var(--vci-danger-color);
+}
+
+.video-call__btn--end:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* Chat Panel */
+.video-call__chat {
+  border-top: 1px solid #dee2e6;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-call__chat-header {
+  padding: 0.75rem 1rem;
+  background: var(--vci-light-color);
+  border-bottom: 1px solid #dee2e6;
+}
+
+.video-call__chat-header h4 {
+  margin: 0;
+  color: var(--vci-dark-color);
+  font-size: 1rem;
+}
+
+.video-call__chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--vci-white);
+}
+
+.video-call__message {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--vci-light-color);
+  border-radius: var(--vci-border-radius);
+}
+
+.video-call__message--translation {
+  background: #e7f3ff;
+  border-left: 3px solid var(--vci-info-color);
+}
+
+.video-call__message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.video-call__message-sender {
+  font-weight: 600;
+  color: var(--vci-primary-color);
+  font-size: 0.9rem;
+}
+
+.video-call__message-time {
+  font-size: 0.8rem;
+  color: var(--vci-secondary-color);
+}
+
+.video-call__message-content {
+  color: var(--vci-dark-color);
+  line-height: 1.4;
+}
+
+.video-call__translation {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.video-call__translation small {
+  color: var(--vci-info-color);
+  font-style: italic;
+}
+
+.video-call__chat-input {
+  padding: 0.75rem 1rem;
+  background: var(--vci-light-color);
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.video-call__input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: var(--vci-border-radius);
+  font-size: 0.9rem;
+}
+
+.video-call__input:focus {
+  outline: none;
+  border-color: var(--vci-primary-color);
+}
+
+.video-call__btn--send {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+  border-color: var(--vci-primary-color);
+  min-width: 80px;
+}
+
+/* Incoming Call Modal */
+.video-call--incoming-call {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.video-call__incoming-modal {
+  background: var(--vci-white);
+  border-radius: var(--vci-border-radius);
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+}
+
+.video-call__incoming-content h3 {
+  margin-top: 0;
+  color: var(--vci-dark-color);
+  font-size: 1.5rem;
+}
+
+.video-call__incoming-content p {
+  color: var(--vci-secondary-color);
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.video-call__incoming-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.video-call__btn--accept {
+  background: var(--vci-success-color);
+  color: var(--vci-white);
+  border-color: var(--vci-success-color);
+  min-width: 120px;
+}
+
+.video-call__btn--reject {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border-color: var(--vci-danger-color);
+  min-width: 120px;
+}
+
+.video-call__error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  margin: 1rem;
+  border-radius: var(--vci-border-radius);
+  border: 1px solid #f5c6cb;
+}
+
+/* ========== APPOINTMENT MANAGER ========== */
+
+.appointment-manager {
+  background: var(--vci-white);
+  border-radius: var(--vci-border-radius);
+  box-shadow: var(--vci-box-shadow);
+  overflow: hidden;
+}
+
+.appointment-manager__header {
+  padding: 1.5rem;
+  background: var(--vci-light-color);
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appointment-manager__title {
+  margin: 0;
+  color: var(--vci-dark-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.appointment-manager__btn {
+  background: var(--vci-white);
+  border: 1px solid #ced4da;
+  padding: 0.5rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.appointment-manager__btn:hover:not(:disabled) {
+  background: var(--vci-light-color);
+  border-color: var(--vci-primary-color);
+}
+
+.appointment-manager__btn:disabled {
+  background: #e9ecef;
+  color: var(--vci-secondary-color);
+  cursor: not-allowed;
+}
+
+.appointment-manager__btn--primary {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+  border-color: var(--vci-primary-color);
+}
+
+.appointment-manager__btn--primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.appointment-manager__btn--secondary {
+  background: var(--vci-secondary-color);
+  color: var(--vci-white);
+  border-color: var(--vci-secondary-color);
+}
+
+.appointment-manager__btn--success {
+  background: var(--vci-success-color);
+  color: var(--vci-white);
+  border-color: var(--vci-success-color);
+}
+
+.appointment-manager__btn--danger {
+  background: var(--vci-danger-color);
+  color: var(--vci-white);
+  border-color: var(--vci-danger-color);
+}
+
+.appointment-manager__btn--small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.appointment-manager__filters {
+  padding: 1rem 1.5rem;
+  background: var(--vci-white);
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.appointment-manager__filter-btn {
+  background: none;
+  border: 1px solid #ced4da;
+  color: var(--vci-secondary-color);
+  padding: 0.5rem 1rem;
+  border-radius: var(--vci-border-radius);
+  cursor: pointer;
+  transition: var(--vci-transition);
+  font-size: 0.9rem;
+}
+
+.appointment-manager__filter-btn:hover {
+  background: var(--vci-light-color);
+  border-color: var(--vci-primary-color);
+}
+
+.appointment-manager__filter-btn--active {
+  background: var(--vci-primary-color);
+  color: var(--vci-white);
+  border-color: var(--vci-primary-color);
+}
+
+/* Modal */
+.appointment-manager__modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.appointment-manager__modal-content {
+  background: var(--vci-white);
+  border-radius: var(--vci-border-radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.appointment-manager__modal-header {
+  padding: 1.5rem 1.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appointment-manager__modal-header h3 {
+  margin: 0;
+  color: var(--vci-dark-color);
+  font-size: 1.3rem;
+}
+
+.appointment-manager__modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--vci-secondary-color);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.appointment-manager__modal-close:hover {
+  background: var(--vci-light-color);
+  color: var(--vci-dark-color);
+}
+
+.appointment-manager__form {
+  padding: 1.5rem;
+}
+
+.appointment-manager__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.appointment-manager__form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.appointment-manager__label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--vci-dark-color);
+}
+
+.appointment-manager__input,
+.appointment-manager__select,
+.appointment-manager__textarea {
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: var(--vci-border-radius);
+  font-size: 1rem;
+  transition: var(--vci-transition);
+}
+
+.appointment-manager__input:focus,
+.appointment-manager__select:focus,
+.appointment-manager__textarea:focus {
+  outline: none;
+  border-color: var(--vci-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.appointment-manager__input--error {
+  border-color: var(--vci-danger-color);
+}
+
+.appointment-manager__field-error {
+  color: var(--vci-danger-color);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.appointment-manager__error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: var(--vci-border-radius);
+  border: 1px solid #f5c6cb;
+}
+
+.appointment-manager__form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Appointments List */
+.appointment-manager__appointments {
+  padding: 1.5rem;
+}
+
+.appointment-manager__loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--vci-secondary-color);
+  font-size: 1.1rem;
+}
+
+.appointment-manager__empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--vci-secondary-color);
+  font-size: 1.1rem;
+  background: var(--vci-light-color);
+  border-radius: var(--vci-border-radius);
+  margin: 1rem 0;
+}
+
+.appointment-manager__appointment {
+  background: var(--vci-white);
+  border: 1px solid #dee2e6;
+  border-radius: var(--vci-border-radius);
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  transition: var(--vci-transition);
+}
+
+.appointment-manager__appointment:hover {
+  box-shadow: var(--vci-box-shadow);
+  border-color: var(--vci-primary-color);
+}
+
+.appointment-manager__appointment--scheduled {
+  border-left: 4px solid var(--vci-info-color);
+}
+
+.appointment-manager__appointment--confirmed {
+  border-left: 4px solid var(--vci-success-color);
+}
+
+.appointment-manager__appointment--in-progress {
+  border-left: 4px solid var(--vci-warning-color);
+}
+
+.appointment-manager__appointment--completed {
+  border-left: 4px solid var(--vci-secondary-color);
+}
+
+.appointment-manager__appointment--cancelled {
+  border-left: 4px solid var(--vci-danger-color);
+  opacity: 0.7;
+}
+
+.appointment-manager__appointment-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.appointment-manager__appointment-info {
+  flex: 1;
+}
+
+.appointment-manager__patient-name {
+  margin: 0 0 0.5rem 0;
+  color: var(--vci-dark-color);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.appointment-manager__appointment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--vci-secondary-color);
+  font-size: 0.9rem;
+}
+
+.appointment-manager__notes {
+  margin-top: 0.5rem;
+  color: var(--vci-dark-color);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.appointment-manager__appointment-status {
+  margin-left: 1rem;
+}
+
+.appointment-manager__status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.appointment-manager__status-badge--scheduled {
+  background: #cce7ff;
+  color: var(--vci-info-color);
+}
+
+.appointment-manager__status-badge--confirmed {
+  background: #d4edda;
+  color: var(--vci-success-color);
+}
+
+.appointment-manager__status-badge--in-progress {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.appointment-manager__status-badge--completed {
+  background: #e2e6ea;
+  color: var(--vci-secondary-color);
+}
+
+.appointment-manager__status-badge--cancelled {
+  background: #f8d7da;
+  color: var(--vci-danger-color);
+}
+
+.appointment-manager__appointment-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+@media (max-width: 768px) {
+  .video-call-integration__header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .video-call-integration__nav {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .video-call-integration__content {
+    padding: 1rem;
+  }
+
+  .video-call-integration__footer-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .video-call-integration__floating-call-btn {
+    bottom: 1rem;
+    right: 1rem;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+
+  .video-call__local-video {
+    width: 120px;
+    height: 90px;
+    bottom: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .video-call__controls {
+    gap: 0.5rem;
+  }
+
+  .video-call__btn {
+    min-width: 100px;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+
+  .appointment-manager__header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .appointment-manager__filters {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .appointment-manager__form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-manager__appointment-main {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .appointment-manager__appointment-actions {
+    justify-content: flex-start;
+  }
+
+  .appointment-manager__modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-call-integration__header {
+    padding: 0.75rem;
+  }
+
+  .video-call-integration__title {
+    font-size: 1.2rem;
+  }
+
+  .video-call-integration__content {
+    padding: 0.75rem;
+  }
+
+  .video-call-auth {
+    margin: 1rem auto;
+  }
+
+  .video-call-auth__container {
+    padding: 1.5rem;
+  }
+
+  .video-call__controls {
+    flex-direction: column;
+  }
+
+  .appointment-manager__appointment {
+    padding: 1rem;
+  }
+
+  .appointment-manager__form {
+    padding: 1rem;
+  }
+}
+
+/* ========== ANIMATIONS ========== */
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.video-call-integration--videocall .video-call-integration__floating-call-btn {
+  display: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vci-light-color: #1a1a1a;
+    --vci-white: #2d2d2d;
+    --vci-dark-color: #ffffff;
+    --vci-secondary-color: #adb5bd;
+  }
+}

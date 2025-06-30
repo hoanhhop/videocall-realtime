@@ -1,0 +1,427 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# run_tts.py - Flask HTTP Service cho viXTTS/XTTS-v2
+
+import os
+import io
+import time
+import tempfile
+import logging
+import torch
+import numpy as np
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import Xtts
+from TTS.utils.generic_utils import get_user_data_dir
+from TTS.utils.manage import ModelManager
+from pydub import AudioSegment
+import soundfile as sf
+from flask import Flask, request, jsonify, send_file
+from concurrent.futures import ThreadPoolExecutor
+import re
+import queue
+
+# Cấu hình logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+
+# --- Cấu hình Thiết bị & Model ---
+MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/XTTS-v2")
+ONNX_MODEL_PATH = os.environ.get("ONNX_MODEL_PATH", os.path.join(MODEL_PATH, "onnx"))
+USE_CUDA = os.environ.get("USE_CUDA", "true").lower() == "true"
+USE_ONNX = os.environ.get("USE_ONNX", "true").lower() == "true"
+SAMPLE_RATE = int(os.environ.get("SAMPLE_RATE", "24000"))
+SPEAKER_WAV_PATH = os.environ.get("SPEAKER_WAV_PATH", "/app/models/speakers")
+# Cấu hình pipelining
+CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", "150"))  # Số ký tự mỗi chunk
+MAX_WORKERS = int(os.environ.get("MAX_WORKERS", "4"))  # Số worker tối đa
+
+# --- Biến toàn cục ---
+model = None
+device = None
+onnx_session = None
+onnx_models_loaded = False  # Cờ xác nhận đã có mô hình ONNX thực sự
+# Thread pool cho xử lý song song
+executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+# Queue xử lý pipeline
+tts_queue = queue.Queue(maxsize=10)
+# Cache speaker embeddings
+speaker_embeddings_cache = {}
+
+# Tối ưu phép nhân ma trận float32 cho tốc độ cao
+try:
+    torch.set_float32_matmul_precision('high')
+except Exception:
+    pass  # Không phải bản torch nào cũng hỗ trợ, bỏ qua nếu lỗi
+
+def load_model():
+    """Tải mô hình XTTS"""
+    global model, device, onnx_session, onnx_models_loaded
+    
+    if torch.cuda.is_available() and USE_CUDA:
+        device = torch.device("cuda")
+        logger.info(f"Sử dụng GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        device = torch.device("cpu")
+        logger.info("Sử dụng CPU")
+    
+    # Kiểm tra ONNX model thực sự
+    has_onnx = False
+    onnx_model_file = os.path.join(ONNX_MODEL_PATH, "model_placeholder.onnx")
+    if USE_ONNX and os.path.exists(ONNX_MODEL_PATH) and os.path.isdir(ONNX_MODEL_PATH):
+        # Kiểm tra file ONNX thực sự (ở đây chỉ là placeholder, bạn cần thay bằng file thực tế nếu đã export)
+        if os.path.exists(onnx_model_file):
+            try:
+                import onnxruntime as ort
+                sess_options = ort.SessionOptions()
+                sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+                onnx_session = ort.InferenceSession(onnx_model_file, sess_options=sess_options)
+                onnx_models_loaded = True
+                has_onnx = True
+                logger.info(f"Đã tải ONNX model: {onnx_model_file}")
+            except Exception as e:
+                logger.warning(f"Không thể khởi tạo ONNX Runtime: {e}. Sẽ fallback sang PyTorch.")
+                onnx_models_loaded = False
+                has_onnx = False
+        else:
+            logger.warning(f"Không tìm thấy file ONNX thực sự trong {ONNX_MODEL_PATH}. Sẽ fallback sang PyTorch.")
+            onnx_models_loaded = False
+            has_onnx = False
+    
+    # Nếu không dùng ONNX, tải mô hình PyTorch
+    if not has_onnx:
+        logger.info(f"Đang tải mô hình PyTorch từ {MODEL_PATH}")
+        
+        # Nếu thư mục model không tồn tại hoặc rỗng, tự động tải
+        if not os.path.exists(MODEL_PATH) or not os.listdir(MODEL_PATH):
+            logger.info("Không tìm thấy mô hình, đang tải...")
+            ModelManager().download_model("tts_models/multilingual/multi-dataset/xtts_v2")
+        
+        try:
+            # Tải cấu hình và model
+            if os.path.exists(os.path.join(MODEL_PATH, "config.json")):
+                config_path = os.path.join(MODEL_PATH, "config.json")
+            else:
+                config_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v2", "config.json")
+            config = XttsConfig()
+            config.load_json(config_path)
+            model = Xtts.init_from_config(config)
+            if os.path.exists(os.path.join(MODEL_PATH, "model.pth")):
+                checkpoint_path = os.path.join(MODEL_PATH, "model.pth")
+            else:
+                checkpoint_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v2", "model.pth")
+            model.load_checkpoint(config, checkpoint_path)
+            model.to(device)
+            # Nếu muốn tối ưu hơn nữa với torch.compile (PyTorch 2.0+), hãy thử:
+            # try:
+            #     model = torch.compile(model)
+            # except Exception:
+            #     pass  # Không phải model nào cũng tương thích torch.compile
+            if device.type == "cuda":
+                model.half() # Dùng half precision trên GPU để tăng tốc
+            logger.info("Tải model thành công")
+        except Exception as e:
+            logger.error(f"Lỗi khi tải model: {e}")
+            raise
+
+# Khởi động pipeline worker
+def start_tts_pipeline_worker():
+    """Khởi động worker xử lý các chunk TTS trong queue"""
+    def pipeline_worker():
+        logger.info("Pipeline worker đã khởi động")
+        while True:
+            try:
+                task = tts_queue.get()
+                if task is None:  # Signal to exit
+                    break
+                    
+                # Xử lý task
+                try:
+                    chunk_text, speaker_embeddings, language, result_queue, task_id = task
+                    
+                    with torch.no_grad():
+                        if onnx_models_loaded:
+                            logger.info("Đang sử dụng ONNX để tổng hợp TTS (chỉ là khung mẫu, cần hoàn thiện logic thực tế)")
+                            wav = run_onnx_tts_inference(chunk_text, speaker_embeddings, language)
+                        else:
+                            # Tổng hợp giọng nói bằng PyTorch
+                            out = model.inference(
+                                text=chunk_text,
+                                language=language,
+                                gpt_cond_latent=speaker_embeddings[0],
+                                speaker_embedding=speaker_embeddings[1],
+                                temperature=0.7, 
+                                speed=1.0
+                            )
+                            wav = out["wav"]
+                    
+                    # Đưa kết quả vào result_queue
+                    result_queue.put((task_id, wav))
+                except Exception as e:
+                    logger.error(f"Lỗi xử lý chunk TTS: {e}")
+                    # Đưa lỗi vào queue
+                    result_queue.put((task_id, None))
+                finally:
+                    tts_queue.task_done()
+                    
+            except Exception as e:
+                logger.error(f"Lỗi trong pipeline worker: {e}")
+                
+    # Bắt đầu worker trong thread riêng
+    executor.submit(pipeline_worker)
+
+# Kiểm tra và tải mô hình khi khởi động
+load_model()
+start_tts_pipeline_worker()
+
+def find_speaker_wav(language=None, gender=None):
+    """Tìm file speaker phù hợp nhất với ngôn ngữ và giới tính"""
+    if not os.path.exists(SPEAKER_WAV_PATH):
+        return None
+    
+    files = os.listdir(SPEAKER_WAV_PATH)
+    wav_files = [f for f in files if f.endswith('.wav')]
+    
+    if not wav_files:
+        return None
+    
+    # Nếu có cả language và gender
+    if language and gender:
+        for file in wav_files:
+            if language in file.lower() and gender in file.lower():
+                return os.path.join(SPEAKER_WAV_PATH, file)
+    
+    # Nếu chỉ có language
+    if language:
+        for file in wav_files:
+            if language in file.lower():
+                return os.path.join(SPEAKER_WAV_PATH, file)
+    
+    # Trả về file đầu tiên nếu không tìm thấy phù hợp
+    return os.path.join(SPEAKER_WAV_PATH, wav_files[0])
+
+def get_speaker_embeddings(speaker_wav):
+    """Lấy speaker embeddings từ file wav, sử dụng cache nếu có thể"""
+    global speaker_embeddings_cache
+    
+    # Kiểm tra cache
+    if speaker_wav in speaker_embeddings_cache:
+        logger.info(f"Sử dụng speaker embeddings từ cache cho {os.path.basename(speaker_wav)}")
+        return speaker_embeddings_cache[speaker_wav]
+    
+    logger.info(f"Tạo speaker embeddings mới cho {os.path.basename(speaker_wav)}")
+    # Tạo speaker embeddings mới
+    with torch.no_grad():
+        embeddings = model.get_conditioning_latents(
+            audio_path=speaker_wav, 
+            gpt_cond_len=30, 
+            gpt_cond_chunk_len=4, 
+            max_ref_length=10
+        )
+    
+    # Lưu vào cache
+    speaker_embeddings_cache[speaker_wav] = embeddings
+    return embeddings
+
+def split_text_to_chunks(text, chunk_size=CHUNK_SIZE):
+    """Chia văn bản thành các đoạn nhỏ tại ranh giới câu hoặc dấu chấm câu"""
+    # Chia theo dấu chấm câu nếu có thể
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    chunks = []
+    current_chunk = ""
+    
+    for sentence in sentences:
+        # Nếu câu quá dài, cần chia nhỏ hơn
+        if len(sentence) > chunk_size:
+            # Chia theo dấu phẩy
+            comma_parts = re.split(r'(?<=,)\s+', sentence)
+            for part in comma_parts:
+                if len(current_chunk) + len(part) <= chunk_size:
+                    current_chunk += part + " "
+                else:
+                    if current_chunk:
+                        chunks.append(current_chunk.strip())
+                    current_chunk = part + " "
+        elif len(current_chunk) + len(sentence) <= chunk_size:
+            current_chunk += sentence + " "
+        else:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence + " "
+    
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+        
+    return chunks
+
+def run_onnx_tts_inference(chunk_text, speaker_embeddings, language):
+    """
+    Hàm khung để chạy inference với ONNX. Hiện tại chỉ log cảnh báo và trả về None.
+    Bạn cần hoàn thiện logic này dựa trên cấu trúc file ONNX thực tế.
+    """
+    logger.warning("ONNX inference chưa được triển khai thực tế. Luôn fallback sang PyTorch. Hãy export mô hình XTTS sang ONNX thực sự và hoàn thiện hàm này!")
+    return None
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Kiểm tra trạng thái của dịch vụ"""
+    if model is None:
+        return jsonify({"status": "error", "message": "Model chưa được tải"}), 500
+    
+    # Kiểm tra speaker wav
+    speaker_files = 0
+    if os.path.exists(SPEAKER_WAV_PATH):
+        speaker_files = len([f for f in os.listdir(SPEAKER_WAV_PATH) if f.endswith('.wav')])
+    
+    return jsonify({
+        "status": "ok", 
+        "message": "TTS service đang chạy",
+        "model": "XTTS-v2",
+        "device": device.type,
+        "speaker_files": speaker_files,
+        "sample_rate": SAMPLE_RATE,
+        "pipeline_mode": True,
+        "chunk_size": CHUNK_SIZE
+    }), 200
+
+@app.route('/speakers', methods=['GET'])
+def list_speakers():
+    """Liệt kê các speaker có sẵn"""
+    if not os.path.exists(SPEAKER_WAV_PATH):
+        return jsonify({"speakers": []}), 200
+    
+    speakers = [f.replace('.wav', '') for f in os.listdir(SPEAKER_WAV_PATH) if f.endswith('.wav')]
+    return jsonify({"speakers": speakers}), 200
+
+@app.route('/synthesize', methods=['POST'])
+def synthesize():
+    """Tổng hợp giọng nói từ văn bản"""
+    start_time = time.time()
+    
+    # Kiểm tra model
+    if model is None:
+        return jsonify({"error": "Model chưa được tải"}), 500
+    
+    # Lấy văn bản đầu vào
+    text = request.form.get('text')
+    if not text:
+        return jsonify({"error": "Không có văn bản đầu vào"}), 400
+    
+    # Lấy ngôn ngữ (mặc định là tiếng Việt)
+    language = request.form.get('language', 'vi')
+    
+    # Lấy speaker từ file hoặc từ form data
+    speaker_wav = None
+    if 'reference_voice' in request.files:
+        voice_file = request.files['reference_voice']
+        # Lưu vào file tạm
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        voice_file.save(temp_file.name)
+        speaker_wav = temp_file.name
+        logger.info(f"Sử dụng file reference: {speaker_wav}")
+    elif 'speaker' in request.form:
+        speaker_name = request.form.get('speaker')
+        speaker_path = os.path.join(SPEAKER_WAV_PATH, f"{speaker_name}.wav")
+        if os.path.exists(speaker_path):
+            speaker_wav = speaker_path
+            logger.info(f"Sử dụng speaker được chỉ định: {speaker_name}")
+        else:
+            logger.warning(f"Không tìm thấy speaker {speaker_name}, dùng mặc định")
+    
+    # Nếu không có speaker, tìm một speaker phù hợp
+    if not speaker_wav:
+        gender = request.form.get('gender')
+        speaker_wav = find_speaker_wav(language, gender)
+        if speaker_wav:
+            logger.info(f"Sử dụng speaker mặc định: {os.path.basename(speaker_wav)}")
+        else:
+            return jsonify({"error": "Không tìm thấy file speaker"}), 400
+    
+    try:
+        # Đặt flag xử lý chunking
+        use_chunking = len(text) > CHUNK_SIZE and request.form.get('chunking', 'true').lower() == 'true'
+        
+        # Tạo embeddings của speaker (có thể tận dụng lại)
+        speaker_embeddings = get_speaker_embeddings(speaker_wav)
+        
+        if use_chunking:
+            # Xử lý pipelining với chunking
+            logger.info(f"Xử lý văn bản dài {len(text)} ký tự theo chunking")
+            
+            # Chia văn bản thành các chunk
+            chunks = split_text_to_chunks(text)
+            logger.info(f"Đã chia thành {len(chunks)} chunks")
+            
+            # Tạo queue kết quả
+            result_queue = queue.Queue()
+            
+            # Gửi từng chunk vào queue xử lý
+            for i, chunk in enumerate(chunks):
+                # Bỏ qua chunk trống
+                if not chunk.strip():
+                    continue
+                    
+                # Thêm vào queue xử lý
+                tts_queue.put((chunk, speaker_embeddings, language, result_queue, i))
+            
+            # Gom kết quả
+            results = {}
+            for _ in range(len(chunks)):
+                chunk_id, chunk_wav = result_queue.get()
+                if chunk_wav is not None:
+                    results[chunk_id] = chunk_wav
+                result_queue.task_done()
+            
+            # Nối các đoạn audio
+            if results:
+                sorted_chunks = [results[k] for k in sorted(results.keys())]
+                wav = np.concatenate(sorted_chunks)
+            else:
+                raise Exception("Không có đoạn audio nào được tạo ra")
+                
+        else:
+            # Xử lý đồng bộ với văn bản ngắn
+            logger.info(f"Xử lý văn bản ngắn trực tiếp: {text[:50]}...")
+            
+            with torch.no_grad():
+                # Tổng hợp giọng nói
+                out = model.inference(
+                    text=text,
+                    language=language,
+                    gpt_cond_latent=speaker_embeddings[0],
+                    speaker_embedding=speaker_embeddings[1],
+                    temperature=0.7, # Điều chỉnh creativity
+                    speed=1.0       # Điều chỉnh tốc độ nói
+                )
+                wav = out["wav"]
+        
+        # Chuyển đổi wav thành bytes
+        wav_bytes = io.BytesIO()
+        sf.write(wav_bytes, wav, SAMPLE_RATE, format='WAV')
+        wav_bytes.seek(0)
+        
+        # Xóa file tạm nếu có
+        if 'reference_voice' in request.files and os.path.exists(speaker_wav):
+            os.unlink(speaker_wav)
+        
+        end_time = time.time()
+        logger.info(f"Tổng hợp giọng nói hoàn tất trong {end_time - start_time:.2f} giây")
+        
+        return send_file(
+            wav_bytes, 
+            mimetype="audio/wav", 
+            as_attachment=True,
+            download_name="tts_output.wav"
+        )
+    
+    except Exception as e:
+        logger.error(f"Lỗi khi tổng hợp giọng nói: {e}")
+        # Xóa file tạm nếu có
+        if 'reference_voice' in request.files and os.path.exists(speaker_wav):
+            os.unlink(speaker_wav)
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    # Nhận port từ biến môi trường hoặc sử dụng 5002
+    port = int(os.environ.get("PORT", 5002))
+    app.run(host='0.0.0.0', port=port, debug=False) 

@@ -1,0 +1,14 @@
+flask>=2.2.3
+faster-whisper==1.1.1
+python-dotenv>=1.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+transformers>=4.27.0
+ctranslate2>=3.15.0
+sentencepiece>=0.1.97
+gunicorn>=21.2.0
+requests 
+Werkzeug 
+av>=10.0.0 # Python bindings for FFmpeg, cần thiết cho faster-whisper
+onnxruntime-gpu>=1.15.0 # Hỗ trợ inference ONNX trên GPU 

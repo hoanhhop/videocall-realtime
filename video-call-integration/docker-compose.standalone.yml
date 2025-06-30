@@ -1,0 +1,103 @@
+# Video Call Integration - Standalone Docker Compose
+# Chạy độc lập mà không ảnh hưởng hệ thống translation hiện có
+
+version: '3.8'
+
+services:
+  # Video Call Integration Server
+  video-call-integration:    
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"  # Cho phép truy cập từ bên ngoài
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+
+      # Database Configuration
+      - DB_HOST=video-call-mysql
+      - DB_USER=root
+      - DB_PASSWORD=video_call_password
+      - DB_NAME=video_call_database      # JWT Configuration
+      - JWT_SECRET=video-call-integration-secret-key-2024
+      - JWT_EXPIRES_IN=24h
+
+      # CORS Configuration
+      - ALLOWED_ORIGINS=*  # Cho phép tất cả domains truy cập
+
+      # WebRTC Configuration
+      - STUN_SERVER=stun:stun.l.google.com:19302
+
+      # Logging
+      - LOG_LEVEL=info
+      - LOG_FILE=/app/logs/server.log
+
+    volumes:
+      - video-call-logs:/app/logs
+      - ./database:/app/database
+
+    networks:
+      - video-call-network
+
+    depends_on:
+      - video-call-mysql
+
+    restart: unless-stopped
+
+    command: ["node", "integrationServer.js"]
+
+  # MySQL Database for video call integration (độc lập)
+  video-call-mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=video_call_password
+      - MYSQL_DATABASE=video_call_database
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+
+    ports:
+      - "127.0.0.1:3307:3306"  # Port khác để tránh conflict
+
+    volumes:
+      - video-call-mysql-data:/var/lib/mysql
+      - ./database/migration.sql:/docker-entrypoint-initdb.d/01-migration.sql
+
+    networks:
+      - video-call-network
+
+    restart: unless-stopped
+
+    command: --default-authentication-plugin=mysql_native_password
+  # Nginx cho video call (tùy chọn)
+  video-call-nginx:
+    image: nginx:alpine
+    ports:
+      - "127.0.0.1:3080:80"  # Port khác để tránh conflict với nginx hiện có
+    
+    volumes:
+      - ./nginx/nginx.standalone.conf:/etc/nginx/nginx.conf:ro
+      - video-call-nginx-logs:/var/log/nginx
+
+    networks:
+      - video-call-network
+
+    depends_on:
+      - video-call-integration
+
+    restart: unless-stopped
+
+volumes:
+  # Volumes riêng biệt cho video call integration
+  video-call-mysql-data:
+    driver: local
+  video-call-logs:
+    driver: local
+  video-call-nginx-logs:
+    driver: local
+
+networks:
+  # Network riêng biệt để tránh conflict
+  video-call-network:
+    driver: bridge
+    name: video-call-standalone-network

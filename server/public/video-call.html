@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call với Translation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .room-info {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            padding: 1rem;
+            gap: 1rem;
+            max-height: calc(100vh - 120px);
+        }
+
+        .video-container {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .video-status {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .status-icon.muted {
+            background: #e74c3c;
+        }
+
+        .status-icon.unmuted {
+            background: #27ae60;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .control-btn.mic {
+            background: #27ae60;
+        }
+
+        .control-btn.mic.muted {
+            background: #e74c3c;
+        }
+
+        .control-btn.camera {
+            background: #3498db;
+        }
+
+        .control-btn.camera.off {
+            background: #95a5a6;
+        }
+
+        .control-btn.end-call {
+            background: #e74c3c;
+        }
+
+        .control-btn.translation {
+            background: #9b59b6;
+        }
+
+        .control-btn.translation.active {
+            background: #8e44ad;
+            box-shadow: 0 0 20px rgba(142, 68, 173, 0.5);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .sidebar {
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-container, .translation-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .container-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .chat-messages, .translation-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .message.own {
+            background: rgba(52, 152, 219, 0.3);
+            align-self: flex-end;
+        }
+
+        .message .sender {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 1rem;
+            gap: 0.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            outline: none;
+        }
+
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .chat-input button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .chat-input button:hover {
+            background: #2980b9;
+        }
+
+        .translation-item {
+            background: rgba(155, 89, 182, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #9b59b6;
+        }
+
+        .translation-original {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        .translation-result {
+            font-size: 1rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        .language-info {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 0.5rem;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: white;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                min-width: auto;
+                max-width: none;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: rgba(231, 76, 60, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Video Call với Translation</h1>
+        <div class="room-info">Room: <span id="roomId"></span></div>
+    </div>
+
+    <div class="main-container">
+        <div class="video-container">
+            <div class="video-grid">
+                <div class="video-wrapper">
+                    <video id="localVideo" autoplay muted playsinline></video>
+                    <div class="video-overlay">
+                        <span class="user-name">Bạn</span>
+                        <div class="video-status">
+                            <div class="status-icon unmuted" id="localMicStatus">🎤</div>
+                            <div class="status-icon" id="localCameraStatus">📹</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-overlay">
+                        <span class="user-name" id="remoteName">Đang chờ...</span>
+                        <div class="video-status">
+                            <div class="status-icon" id="remoteMicStatus">🎤</div>
+                            <div class="status-icon" id="remoteCameraStatus">📹</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn mic" id="micBtn" title="Bật/Tắt mic">
+                    🎤
+                </button>
+                <button class="control-btn camera" id="cameraBtn" title="Bật/Tắt camera">
+                    📹
+                </button>
+                <button class="control-btn translation" id="translationBtn" title="Bật/Tắt dịch">
+                    🌐
+                </button>
+                <button class="control-btn end-call" id="endCallBtn" title="Kết thúc cuộc gọi">
+                    📞
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="chat-container">
+                <div class="container-header">
+                    <span>Chat</span>
+                    <button class="toggle-btn" id="chatToggle">−</button>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
+                    <button id="sendChatBtn">Gửi</button>
+                </div>
+            </div>
+
+            <div class="translation-container">
+                <div class="container-header">
+                    <span>Translation</span>
+                    <button class="toggle-btn" id="translationToggle">−</button>
+                </div>
+                <div class="translation-content" id="translationContent">
+                    <div class="loading" style="display: none;" id="translationLoading">
+                        <div class="spinner"></div>
+                        Đang dịch...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        class VideoCallApp {
+            constructor() {
+                this.roomId = window.location.pathname.split('/').pop();
+                this.socket = null;
+                this.localStream = null;
+                this.remoteStream = null;
+                this.peerConnection = null;
+                this.isAudioEnabled = true;
+                this.isVideoEnabled = true;
+                this.isTranslationEnabled = false;
+                this.currentUser = null;
+
+                this.initializeUI();
+                this.connectSocket();
+                this.setupPeerConnection();
+                this.getMediaStream();
+            }
+
+            initializeUI() {
+                document.getElementById('roomId').textContent = this.roomId;
+
+                // Control buttons
+                document.getElementById('micBtn').addEventListener('click', () => this.toggleAudio());
+                document.getElementById('cameraBtn').addEventListener('click', () => this.toggleVideo());
+                document.getElementById('translationBtn').addEventListener('click', () => this.toggleTranslation());
+                document.getElementById('endCallBtn').addEventListener('click', () => this.endCall());
+
+                // Chat
+                document.getElementById('sendChatBtn').addEventListener('click', () => this.sendMessage());
+                document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+
+                // Toggle panels
+                document.getElementById('chatToggle').addEventListener('click', () => this.togglePanel('chat'));
+                document.getElementById('translationToggle').addEventListener('click', () => this.togglePanel('translation'));
+            }
+
+            connectSocket() {
+                this.socket = io();
+
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.showNotification('Đã kết nối thành công', 'success');
+                });
+
+                this.socket.on('user_joined_room', (data) => {
+                    console.log('User joined:', data);
+                    document.getElementById('remoteName').textContent = data.userInfo?.fullName || 'User khác';
+                    this.showNotification(`${data.userInfo?.fullName || 'User'} đã tham gia`, 'success');
+                });
+
+                this.socket.on('user_left_room', (data) => {
+                    console.log('User left:', data);
+                    document.getElementById('remoteName').textContent = 'Đã rời khỏi';
+                    this.showNotification('User đã rời khỏi cuộc gọi', 'info');
+                });
+
+                this.socket.on('webrtc_offer', async (data) => {
+                    console.log('Received offer:', data);
+                    await this.handleOffer(data.offer);
+                });
+
+                this.socket.on('webrtc_answer', async (data) => {
+                    console.log('Received answer:', data);
+                    await this.handleAnswer(data.answer);
+                });
+
+                this.socket.on('webrtc_ice_candidate', async (data) => {
+                    console.log('Received ICE candidate:', data);
+                    await this.handleIceCandidate(data.candidate);
+                });
+
+                this.socket.on('video_chat_message', (data) => {
+                    this.displayMessage(data.message, data.fromUserInfo?.fullName || 'User', false);
+                });
+
+                this.socket.on('translation_result', (data) => {
+                    this.displayTranslation(data.originalText, data.translatedText, data.sourceLanguage, data.targetLanguage);
+                });
+
+                // Join room
+                this.socket.emit('join_video_room', { roomId: this.roomId });
+            }            setupPeerConnection() {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' },
+                        // TURN servers for NAT traversal - required for cross-network calls
+                        {
+                            urls: 'turn:openrelay.metered.ca:80',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443',
+                            username: 'openrelayproject', 
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        }
+                    ],
+                    iceCandidatePoolSize: 10
+                };
+
+                this.peerConnection = new RTCPeerConnection(configuration);
+
+                this.peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        this.socket.emit('webrtc_ice_candidate', {
+                            roomId: this.roomId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                this.peerConnection.ontrack = (event) => {
+                    console.log('Remote stream received');
+                    this.remoteStream = event.streams[0];
+                    document.getElementById('remoteVideo').srcObject = this.remoteStream;
+                };
+
+                this.peerConnection.onconnectionstatechange = () => {
+                    console.log('Connection state:', this.peerConnection.connectionState);
+                    if (this.peerConnection.connectionState === 'connected') {
+                        this.showNotification('Đã kết nối video call', 'success');
+                    }
+                };
+            }
+
+            async getMediaStream() {
+                try {
+                    this.localStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true
+                    });
+
+                    document.getElementById('localVideo').srcObject = this.localStream;
+
+                    // Add tracks to peer connection
+                    this.localStream.getTracks().forEach(track => {
+                        this.peerConnection.addTrack(track, this.localStream);
+                    });
+
+                    this.showNotification('Camera và microphone đã sẵn sàng', 'success');
+                } catch (error) {
+                    console.error('Error accessing media devices:', error);
+                    this.showNotification('Không thể truy cập camera/microphone', 'error');
+                }
+            }
+
+            async createOffer() {
+                try {
+                    const offer = await this.peerConnection.createOffer();
+                    await this.peerConnection.setLocalDescription(offer);
+                    
+                    this.socket.emit('webrtc_offer', {
+                        roomId: this.roomId,
+                        offer: offer
+                    });
+                } catch (error) {
+                    console.error('Error creating offer:', error);
+                }
+            }
+
+            async handleOffer(offer) {
+                try {
+                    await this.peerConnection.setRemoteDescription(offer);
+                    const answer = await this.peerConnection.createAnswer();
+                    await this.peerConnection.setLocalDescription(answer);
+                    
+                    this.socket.emit('webrtc_answer', {
+                        roomId: this.roomId,
+                        answer: answer
+                    });
+                } catch (error) {
+                    console.error('Error handling offer:', error);
+                }
+            }
+
+            async handleAnswer(answer) {
+                try {
+                    await this.peerConnection.setRemoteDescription(answer);
+                } catch (error) {
+                    console.error('Error handling answer:', error);
+                }
+            }
+
+            async handleIceCandidate(candidate) {
+                try {
+                    await this.peerConnection.addIceCandidate(candidate);
+                } catch (error) {
+                    console.error('Error handling ICE candidate:', error);
+                }
+            }
+
+            toggleAudio() {
+                this.isAudioEnabled = !this.isAudioEnabled;
+                const audioTrack = this.localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = this.isAudioEnabled;
+                }
+
+                const micBtn = document.getElementById('micBtn');
+                const micStatus = document.getElementById('localMicStatus');
+                
+                if (this.isAudioEnabled) {
+                    micBtn.classList.remove('muted');
+                    micStatus.classList.add('unmuted');
+                    micStatus.classList.remove('muted');
+                } else {
+                    micBtn.classList.add('muted');
+                    micStatus.classList.add('muted');
+                    micStatus.classList.remove('unmuted');
+                }
+            }
+
+            toggleVideo() {
+                this.isVideoEnabled = !this.isVideoEnabled;
+                const videoTrack = this.localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.enabled = this.isVideoEnabled;
+                }
+
+                const cameraBtn = document.getElementById('cameraBtn');
+                
+                if (this.isVideoEnabled) {
+                    cameraBtn.classList.remove('off');
+                } else {
+                    cameraBtn.classList.add('off');
+                }
+            }
+
+            toggleTranslation() {
+                this.isTranslationEnabled = !this.isTranslationEnabled;
+                const translationBtn = document.getElementById('translationBtn');
+                
+                if (this.isTranslationEnabled) {
+                    translationBtn.classList.add('active');
+                    this.showNotification('Translation đã được bật', 'success');
+                } else {
+                    translationBtn.classList.remove('active');
+                    this.showNotification('Translation đã được tắt', 'info');
+                }
+            }
+
+            sendMessage() {
+                const input = document.getElementById('chatInput');
+                const message = input.value.trim();
+                
+                if (message) {
+                    this.socket.emit('video_chat_message', {
+                        roomId: this.roomId,
+                        message: message,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    this.displayMessage(message, 'Bạn', true);
+                    input.value = '';
+
+                    // If translation is enabled, translate the message
+                    if (this.isTranslationEnabled) {
+                        this.translateMessage(message);
+                    }
+                }
+            }
+
+            displayMessage(message, sender, isOwn) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+                
+                messageDiv.innerHTML = `
+                    <div class="sender">${sender}</div>
+                    <div>${message}</div>
+                `;
+
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            translateMessage(text) {
+                // Show loading
+                document.getElementById('translationLoading').style.display = 'flex';
+
+                // Simulate translation (replace with actual translation API)
+                setTimeout(() => {
+                    const translatedText = `[Translated] ${text}`;
+                    this.displayTranslation(text, translatedText, 'vi', 'en');
+                    
+                    // Send translation to other participants
+                    this.socket.emit('translation_result', {
+                        roomId: this.roomId,
+                        originalText: text,
+                        translatedText: translatedText,
+                        sourceLanguage: 'vi',
+                        targetLanguage: 'en'
+                    });
+
+                    document.getElementById('translationLoading').style.display = 'none';
+                }, 1000);
+            }
+
+            displayTranslation(originalText, translatedText, sourceLanguage, targetLanguage) {
+                const translationContainer = document.getElementById('translationContent');
+                const translationDiv = document.createElement('div');
+                translationDiv.className = 'translation-item';
+                
+                translationDiv.innerHTML = `
+                    <div class="translation-original">${originalText}</div>
+                    <div class="translation-result">${translatedText}</div>
+                    <div class="language-info">${sourceLanguage} → ${targetLanguage}</div>
+                `;
+
+                translationContainer.appendChild(translationDiv);
+                translationContainer.scrollTop = translationContainer.scrollHeight;
+            }
+
+            togglePanel(panelType) {
+                const toggleBtn = document.getElementById(`${panelType}Toggle`);
+                const container = document.querySelector(`.${panelType}-container`);
+                const content = container.querySelector(`.${panelType}-messages, .${panelType}-content`);
+                
+                if (content.style.display === 'none') {
+                    content.style.display = 'flex';
+                    toggleBtn.textContent = '−';
+                } else {
+                    content.style.display = 'none';
+                    toggleBtn.textContent = '+';
+                }
+            }
+
+            endCall() {
+                if (confirm('Bạn có chắc muốn kết thúc cuộc gọi?')) {
+                    this.socket.emit('leave_video_room', { roomId: this.roomId });
+                    
+                    // Clean up streams
+                    if (this.localStream) {
+                        this.localStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    // Close peer connection
+                    if (this.peerConnection) {
+                        this.peerConnection.close();
+                    }
+
+                    // Redirect back
+                    window.close();
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new VideoCallApp();
+        });
+    </script>
+</body>
+</html>

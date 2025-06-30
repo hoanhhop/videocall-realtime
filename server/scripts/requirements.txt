@@ -1,0 +1,9 @@
+grpcio
+grpcio-tools
+grpcio-health-checking
+torch
+transformers
+numpy
+scipy
+onnxruntime
+psutil

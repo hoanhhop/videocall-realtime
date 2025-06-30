@@ -1,0 +1,59 @@
+{
+  "name": "video-call-translation",
+  "version": "1.0.0",
+  "description": "Real-time video call translation system",
+  "main": "server/api/server.js",
+  "scripts": {
+    "setup": "node -e \"process.platform === 'win32' ? require('child_process').execSync('scripts\\\\setup.bat', {stdio: 'inherit'}) : require('child_process').execSync('bash scripts/setup.sh', {stdio: 'inherit'})\"",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:socket\"",
+    "dev:api": "cd server/api && nodemon server.js",
+    "dev:socket": "cd server/socket && nodemon server.js",
+    "client": "cd client && npm run dev",
+    "start:services": "node scripts/start-services.js",
+    "start:services:ubuntu": "bash scripts/start_services_ubuntu.sh",
+    "start:all": "concurrently \"npm run dev:api\" \"npm run dev:socket\" \"npm run start:services\" \"npm run client\"",
+    "start:all:ubuntu": "concurrently \"npm run dev:api\" \"npm run dev:socket\" \"npm run start:services:ubuntu\" \"npm run client\"",
+    "download:models": "python scripts/utils/download_models.py",
+    "setup:ubuntu": "chmod +x setup_ubuntu.sh && ./setup_ubuntu.sh",
+    "check:system": "python scripts/system_check.py",
+    "build": "cd client && npm run build",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "optimize:models": "bash scripts/deploy/optimize_models.sh",
+    "deploy": "bash scripts/deploy/deploy.sh"
+  },
+  "keywords": [
+    "video-call",
+    "translation",
+    "realtime",
+    "speech-recognition",
+    "text-to-speech"
+  ],
+  "author": "Vo Nguyen Hoanh Hop",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^7.6.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "body-parser": "^1.20.2",
+    "socket.io": "^4.7.2",
+    "redis": "^4.6.12",
+    "nodemon": "^3.0.2",
+    "simple-peer": "^9.11.1",
+    "uuid": "^9.0.1",
+    "axios": "^1.6.2",
+    "multer": "^1.4.5-lts.1",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "morgan": "^1.10.0",
+    "vectordb": "^0.19.1",
+    "winston": "^3.11.0",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

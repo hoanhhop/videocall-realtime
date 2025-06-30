@@ -1,0 +1,246 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.9
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - translation-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`34.142.175.163`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.entrypoints=web"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '256M'
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.api
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - PHOWHISPER_ASR_URL=http://phowhisper:50051
+      - TRANSLATION_SERVICE_URL=http://translation:50052
+      - TTS_SERVICE_URL=http://tts:5002
+      - CORS_ORIGIN=*
+    networks:
+      - translation-network
+    depends_on:
+      - redis
+      - phowhisper
+      - translation
+      - tts
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`34.142.175.163`) && PathPrefix(`/api`)"
+      - "traefik.http.services.api-service.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowOriginList=*"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowHeaders=Content-Type,Authorization"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowCredentials=true"
+      - "traefik.http.routers.api.middlewares=api-cors@docker"
+      - "traefik.http.services.api-service.loadbalancer.passHostHeader=true"
+      - "traefik.http.routers.api.entrypoints=web"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '2G'
+    restart: unless-stopped
+
+  socket:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.socket
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - REDIS_URL=redis://redis:6379
+      - PHOWHISPER_ASR_URL=http://phowhisper:50051
+      - TRANSLATION_SERVICE_URL=http://translation:50052
+      - TTS_SERVICE_URL=http://tts:5002
+      - CORS_ORIGIN=*
+    networks:
+      - translation-network
+    depends_on:
+      - redis
+      - phowhisper
+      - translation
+      - tts
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.socket.rule=Host(`34.142.175.163`) && PathPrefix(`/socket.io`, `/stream`)"
+      - "traefik.http.services.socket-service.loadbalancer.server.port=4000"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowMethods=GET,POST"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowOriginList=*"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowHeaders=Content-Type"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowCredentials=true"
+      - "traefik.http.routers.socket.middlewares=socket-cors@docker"
+      - "traefik.http.routers.socket.entrypoints=web"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
+    restart: unless-stopped
+
+  phowhisper:
+    build:
+      context: ./server/services/phowhisper_asr_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/phowhisper:/app/models/phowhisper:ro
+      - phowhisper-cache:/root/.cache:delegated
+    environment:
+      - MODEL_PATH_CT2=/app/models/phowhisper/PhoWhisper-medium-ct2
+      - PORT_ASR=50051
+      - OMP_NUM_THREADS=6
+      - USE_CUDA=false
+      - BEAM_SIZE=1
+      - GPU_DEVICE=-1
+      - COMPUTE_TYPE=int8
+      - CHUNK_LENGTH=0.3
+      - VAD_FILTER=true
+      - LOW_MEMORY=false
+      - MAX_WORKERS=3
+      - LOG_LEVEL=WARNING
+      - MALLOC_CONF=background_thread:true,metadata_thp:auto,dirty_decay_ms:30000,muzzy_decay_ms:30000
+    networks:
+      - translation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '6.0'
+          memory: '8G'
+        reservations:
+          cpus: '3.0'
+          memory: '4G'
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  translation:
+    build:
+      context: ./server/services/translation_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/opus_mt:/app/models/opus_mt:ro
+      - translation-cache:/root/.cache:delegated
+    environment:
+      - OPUS_MODELS_BASE_PATH=/app/models/opus_mt
+      - PORT_TRANSLATION=50052
+      - USE_CUDA=false
+      - MAX_LENGTH=512
+      - BATCH_SIZE=2
+      - GPU_DEVICE=-1
+      - OMP_NUM_THREADS=4
+      - NUM_WORKERS=2
+      - CPU_THREADS=4
+      - MAX_QUEUE_SIZE=16
+      - COMPUTE_TYPE=int8
+      - LOG_LEVEL=WARNING
+    networks:
+      - translation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '8G'
+    restart: on-failure
+
+  tts:
+    build:
+      context: ./server/services/tts_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/tts:/app/models:ro
+      - tts-cache:/root/.cache:delegated
+    environment:
+      - MODEL_PATH=/app/models/XTTS-v2
+      - PORT=5002
+      - USE_CUDA=false
+      - USE_ONNX=false
+      - BATCH_SIZE=1
+      - SPEAKER_WAV_PATH=/app/models/speakers
+      - SAMPLE_RATE=22050
+      - GPU_DEVICE=-1
+      - OMP_NUM_THREADS=4
+      - CHUNK_SIZE=120
+      - MAX_WORKERS=4
+      - LOW_MEMORY=true
+      - COMPUTE_TYPE=int8
+      - LOG_LEVEL=WARNING
+    networks:
+      - translation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '8G'
+    restart: on-failure
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api
+        - VITE_SOCKET_URL=/socket.io
+        - VITE_STREAM_URL=/stream
+        - VITE_ENVIRONMENT=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.client.rule=Host(`34.142.175.163`)"
+      - "traefik.http.services.client-service.loadbalancer.server.port=80"
+      - "traefik.http.routers.client.priority=1"
+      - "traefik.http.routers.client.entrypoints=web"
+    networks:
+      - translation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - translation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'
+
+volumes:
+  redis-data:
+  phowhisper-cache:
+  translation-cache:
+  tts-cache:
+
+networks:
+  translation-network:
+    driver: bridge

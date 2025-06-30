@@ -1,0 +1,41 @@
+{
+  "name": "video-call-integration-server",
+  "version": "1.0.0",
+  "description": "Server cho video call integration với database hiện có",
+  "main": "integrationServer.js",
+  "scripts": {
+    "start": "node integrationServer.js",
+    "dev": "nodemon integrationServer.js",
+    "setup-database": "node database/setup.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "video-call",
+    "integration",
+    "websocket",
+    "webrtc",
+    "translation"
+  ],
+  "author": "Vo Nguyen Hoanh Hop",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "mysql2": "^3.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HoanhHop11/video-call-translation_OFFICIAL"
+  }
+}

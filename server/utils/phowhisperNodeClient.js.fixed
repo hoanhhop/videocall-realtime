@@ -1,0 +1,179 @@
+const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+const { createLogger } = require('./logger');
+
+const logger = createLogger('phowhisper-node-client');
+
+const ASR_SERVICE_URL = process.env.PHOWHISPER_ASR_URL || 'http://127.0.0.1:50051';
+
+/**
+ * Gửi yêu cầu nhận dạng giọng nói đến ASR service Python.
+ * @param {Buffer} audioBuffer Dữ liệu audio dạng buffer.
+ * @param {string} originalFileName Tên file gốc (ví dụ: 'audio.wav') để giúp FormData.
+ * @param {string} language Ngôn ngữ nhận dạng (ví dụ: 'vi', 'en'). Nếu null, ASR service sẽ tự phát hiện.
+ * @param {string} initialPrompt Ngữ cảnh ban đầu (nếu có).
+ * @returns {Promise<Object|null>} Kết quả nhận dạng hoặc null nếu có lỗi.
+ */
+const recognizeAudioViaHttp = async (audioBuffer, originalFileName = 'audio.wav', language = null, initialPrompt = null) => {
+    if (!audioBuffer || audioBuffer.length === 0) {
+        logger.warn('Audio buffer rỗng, không gửi yêu cầu đến ASR service.');
+        return null;
+    }
+
+    const recognizeUrl = `${ASR_SERVICE_URL}/recognize`;
+    const formData = new FormData();
+
+    // Luôn sử dụng .wav để đảm bảo tương thích với PhoWhisper
+    let fileExtension = '.wav';
+    // PhoWhisper service yêu cầu file có extension chuẩn âm thanh
+
+    const tempDir = path.join(__dirname, '../temp');
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const tempFilePath = path.join(tempDir, `temp_audio_${Date.now()}${fileExtension}`);
+
+    try {
+        fs.writeFileSync(tempFilePath, audioBuffer);
+
+        formData.append('audio', fs.createReadStream(tempFilePath), `audio${fileExtension}`);
+
+        if (language) {
+            formData.append('language', language);
+        }
+        if (initialPrompt) {
+            formData.append('initial_prompt', initialPrompt);
+        }
+
+        logger.info(`Đang gửi ${audioBuffer.length} bytes audio đến ${recognizeUrl} (ngôn ngữ: ${language || 'auto'}, định dạng: ${fileExtension}, form field: audio)`);
+
+        const response = await axios.post(recognizeUrl, formData, {
+            headers: {
+                ...formData.getHeaders(),
+            },
+            timeout: 30000, // Timeout 30 giây
+        });
+
+        logger.info('Nhận phản hồi thành công từ ASR service.');
+        return response.data;
+
+    } catch (error) {
+        logger.error(`Lỗi khi gọi ASR service tại ${recognizeUrl}:`, error.message);
+        if (error.response) {
+            logger.error('ASR service response data:', error.response.data);
+            logger.error('ASR service response status:', error.response.status);
+        }
+        return null;
+    } finally {
+        if (fs.existsSync(tempFilePath)) {
+            try {
+                fs.unlinkSync(tempFilePath);
+            } catch (unlinkError) {
+                logger.warn(`Không thể xóa file tạm ${tempFilePath}:`, unlinkError.message);
+            }
+        }
+    }
+};
+
+/**
+ * Phiên bản đơn giản hơn của hàm recognizeAudio, sử dụng API đơn giản hơn.
+ * @param {Buffer} audioBuffer Dữ liệu audio dạng buffer.
+ * @param {string} originalFileName Tên file gốc.
+ * @param {string} language Ngôn ngữ nhận dạng.
+ * @param {string} initialPrompt Ngữ cảnh ban đầu (nếu có).
+ * @returns {Promise<Object|null>} Kết quả nhận dạng hoặc null nếu có lỗi.
+ */
+const recognizeAudioViaHttpSimple = async (audioBuffer, originalFileName = 'audio.wav', language = null, initialPrompt = null) => {
+    if (!audioBuffer || audioBuffer.length === 0) {
+        logger.warn('Audio buffer rỗng, không gửi yêu cầu đến ASR service.');
+        return null;
+    }
+
+    const recognizeUrl = `${ASR_SERVICE_URL}/recognize_simple`;
+    const formData = new FormData();
+
+    // Luôn sử dụng .wav để đảm bảo tương thích với PhoWhisper
+    let fileExtension = '.wav';
+    // PhoWhisper service yêu cầu file có extension chuẩn âm thanh
+
+    const tempDir = path.join(__dirname, '../temp');
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const tempFilePath = path.join(tempDir, `temp_audio_${Date.now()}${fileExtension}`);
+
+    try {
+        fs.writeFileSync(tempFilePath, audioBuffer);
+
+        formData.append('audio', fs.createReadStream(tempFilePath), `audio${fileExtension}`);
+
+        if (language) {
+            formData.append('language', language);
+        }
+        if (initialPrompt) {
+            formData.append('initial_prompt', initialPrompt);
+        }
+
+        logger.info(`[SIMPLE] Đang gửi ${audioBuffer.length} bytes audio đến ${recognizeUrl} (ngôn ngữ: ${language || 'auto'}, định dạng: ${fileExtension}, form field: audio)`);
+
+        const response = await axios.post(recognizeUrl, formData, {
+            headers: {
+                ...formData.getHeaders(),
+            },
+            timeout: 30000,
+        });
+
+        logger.info('[SIMPLE] Nhận phản hồi thành công từ ASR service.');
+        return response.data;
+
+    } catch (error) {
+        logger.error(`[SIMPLE] Lỗi khi gọi ASR service tại ${recognizeUrl}:`, error.message);
+        if (error.response) {
+            logger.error('[SIMPLE] ASR service response data:', error.response.data);
+            logger.error('[SIMPLE] ASR service response status:', error.response.status);
+        }
+        return null;
+    } finally {
+        if (fs.existsSync(tempFilePath)) {
+            try {
+                fs.unlinkSync(tempFilePath);
+            } catch (unlinkError) {
+                logger.warn(`[SIMPLE] Không thể xóa file tạm ${tempFilePath}:`, unlinkError.message);
+            }
+        }
+    }
+};
+
+/**
+ * Kiểm tra sức khỏe của ASR service.
+ * @returns {Promise<boolean>} True nếu service khỏe mạnh, ngược lại là false.
+ */
+const checkASRServiceHealth = async () => {
+    const healthUrl = `${ASR_SERVICE_URL}/health`;
+    try {
+        const response = await axios.get(healthUrl, { timeout: 5000 }); // Timeout 5 giây
+        if (response.status === 200 && response.data) {
+            // Handle both response formats
+            const isHealthyFormat1 = response.data.status === 'ok' && response.data.model_loaded === true;
+            const isHealthyFormat2 = response.data.status === 'healthy' && response.data.model === 'loaded';
+            
+            if (isHealthyFormat1 || isHealthyFormat2) {
+                logger.info('ASR service is healthy and model is loaded.');
+                return true;
+            }
+        }
+        logger.warn(`ASR service health check failed or model not loaded: Status ${response.status}, Data: ${JSON.stringify(response.data)}`);
+        return false;
+    } catch (error) {
+        logger.error(`Lỗi khi kiểm tra sức khỏe ASR service tại ${healthUrl}: ${error.message}`);
+        return false;
+    }
+};
+
+module.exports = {
+    recognizeAudioViaHttp,
+    recognizeAudioViaHttpSimple,
+    checkASRServiceHealth,
+};

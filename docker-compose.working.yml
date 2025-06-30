@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.9
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:8081"
+      - "--log.level=INFO"
+    ports:
+      - "8081:8081"
+      - "8082:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - translation-network
+
+  api:
+    build:
+      context: .
+      dockerfile: ./scripts/deploy/docker/Dockerfile.api
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - REDIS_URL=redis://redis:6379
+      - PHOWHISPER_ASR_URL=http://phowhisper:50051
+      - TRANSLATION_SERVICE_URL=http://translation:50052
+      - TTS_SERVICE_URL=http://tts:5002
+      - EMBEDDING_SERVICE_URL=http://embeddings:5003
+      - CORS_ORIGIN=*
+    volumes:
+      - ./server:/app/server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.services.api-service.loadbalancer.server.port=5000"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowOriginList=*"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowHeaders=Content-Type,Authorization"
+      - "traefik.http.middlewares.api-cors.headers.accessControlAllowCredentials=true"
+      - "traefik.http.routers.api.middlewares=api-cors@docker"
+      - "traefik.http.services.api-service.loadbalancer.passHostHeader=true"
+    networks:
+      - translation-network
+    depends_on:
+      - redis
+      - phowhisper
+      - translation
+    command: npm run dev:api
+
+  socket:
+    build:
+      context: .
+      dockerfile: ./scripts/deploy/docker/Dockerfile.socket
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - REDIS_URL=redis://redis:6379
+      - PHOWHISPER_ASR_URL=http://phowhisper:50051
+      - TRANSLATION_SERVICE_URL=http://translation:50052
+      - TTS_SERVICE_URL=http://tts:5002
+      - EMBEDDING_SERVICE_URL=http://embeddings:5003
+      - CORS_ORIGIN=*
+    volumes:
+      - ./server:/app/server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.socket.rule=PathPrefix(`/socket.io`)"
+      - "traefik.http.services.socket-service.loadbalancer.server.port=5001"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowMethods=GET,POST"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowOriginList=*"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowHeaders=Content-Type,Authorization"
+      - "traefik.http.middlewares.socket-cors.headers.accessControlAllowCredentials=true"
+      - "traefik.http.routers.socket.middlewares=socket-cors@docker"
+      - "traefik.http.services.socket-service.loadbalancer.passHostHeader=true"
+    networks:
+      - translation-network
+    depends_on:
+      - redis
+      - phowhisper
+      - translation
+    command: npm run dev:socket
+
+  phowhisper:
+    build:
+      context: ./server/services/phowhisper_asr_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/phowhisper:/app/models/phowhisper:rw
+      - phowhisper-cache:/root/.cache # Cache cho model để tăng tốc độ khởi động
+    environment:
+      - MODEL_PATH_CT2=/app/models/phowhisper/PhoWhisper-medium-ct2
+      - PORT_ASR=50051
+      - OMP_NUM_THREADS=4
+      - USE_CUDA=true
+      - BEAM_SIZE=1 # Beam size=1 để tối ưu tốc độ
+      - GPU_DEVICE=0
+      - COMPUTE_TYPE=float16 # FP16 để tối ưu tốc độ và giảm VRAM
+      - CHUNK_LENGTH=0.4 # Chunk length tối ưu theo hướng dẫn
+      - VAD_FILTER=true # Bật VAD filter để lọc đoạn không có giọng nói
+      - LOW_MEMORY=true # Giảm sử dụng VRAM
+      - MAX_WORKERS=2 # Giảm số worker để không quá tải CPU
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    networks:
+      - translation-network
+
+  translation:
+    build:
+      context: ./server/services/translation_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/opus_mt:/app/models/opus_mt:ro
+      - translation-cache:/root/.cache # Cache cho model
+    environment:
+      - OPUS_MODELS_BASE_PATH=/app/models/opus_mt
+      - PORT_TRANSLATION=50052
+      - USE_CUDA=true
+      - MAX_LENGTH=512
+      - BATCH_SIZE=16 # Tăng batch size để tối ưu throughput
+      - GPU_DEVICE=0
+      - OMP_NUM_THREADS=4
+      - NUM_WORKERS=4 # Tăng số worker theo CPU cores
+      - CPU_THREADS=8 # Tận dụng tối đa CPU
+      - MAX_QUEUE_SIZE=32 # Queue size tối ưu
+    networks:
+      - translation-network
+
+  tts:
+    build:
+      context: ./server/services/tts_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/tts:/app/models:rw
+      - tts-cache:/root/.cache # Cache cho model
+    environment:
+      - MODEL_PATH=/app/models/XTTS-v2
+      - ONNX_MODEL_PATH=/app/models/XTTS-v2/onnx
+      - PORT=5002
+      - USE_CUDA=true
+      - USE_ONNX=true # ONNX để tăng tốc độ inference
+      - BATCH_SIZE=2
+      - SPEAKER_WAV_PATH=/app/models/speakers
+      - SAMPLE_RATE=24000 # Sample rate tối ưu cho chất lượng
+      - GPU_DEVICE=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - OMP_NUM_THREADS=4
+      - CHUNK_SIZE=150 # Chunk size đã tối ưu
+      - MAX_WORKERS=2
+      - LOW_MEMORY=true # Thêm tùy chọn để giảm sử dụng VRAM
+    networks:
+      - translation-network
+
+  embeddings:
+    build:
+      context: ./server/services/embeddings_service
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/models/embeddings:/app/data:rw
+      - embeddings-cache:/root/.cache # Cache cho model
+    environment:
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - PORT=5003
+      - ENABLE_CACHE=true
+      - CACHE_DIR=/app/data
+      - USE_CUDA=true
+      - BATCH_SIZE=32 # Tăng batch size cho embeddings
+      - GPU_DEVICE=0
+    networks:
+      - translation-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api
+        - VITE_SOCKET_URL=/socket.io
+        - VITE_ENVIRONMENT=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.client.rule=PathPrefix(`/`)"
+      - "traefik.http.services.client-service.loadbalancer.server.port=80"
+      - "traefik.http.routers.client.priority=1" # Mức ưu tiên thấp nhất
+    networks:
+      - translation-network
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    networks:
+      - translation-network
+
+volumes:
+  redis-data:
+  phowhisper-cache:
+  translation-cache:
+  tts-cache:
+  embeddings-cache:
+
+networks:
+  translation-network:
+    driver: bridge

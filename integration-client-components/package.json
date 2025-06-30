@@ -1,0 +1,35 @@
+{
+  "name": "video-call-translation-client",
+  "version": "1.0.0",
+  "description": "React components for video call translation integration",
+  "main": "VideoCallApp.jsx",
+  "scripts": {
+    "build": "echo 'Copy these files to your React project'",
+    "start": "echo 'Use these components in your React app'"
+  },
+  "dependencies": {
+    "lucide-react": "^0.263.1"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0"
+  },
+  "keywords": [
+    "react",
+    "video-call",
+    "translation",
+    "webrtc",
+    "video-chat"
+  ],
+  "author": "Video Call Translation Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/video-call-translation"
+  },
+  "files": [
+    "*.jsx",
+    "*.css",
+    "README.md"
+  ]
+}

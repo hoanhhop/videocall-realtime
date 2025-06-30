@@ -1,0 +1,25 @@
+syntax = "proto3";
+package speech;
+
+// Request chứa audio dạng bytes và ngôn ngữ (ISO 639-1 code)
+message RecognizeRequest {
+  bytes audio_content = 1; // Raw audio data (e.g., 16-bit PCM, 16kHz, mono)
+  string language = 2;     // Language code (e.g., "vi", "en")
+}
+
+// Response chứa kết quả nhận dạng và thông tin bổ sung
+message RecognizeResponse {
+  string text = 1;               // Văn bản đã nhận dạng (đã qua hậu xử lý)
+  string original_text = 2;      // Văn bản gốc trước khi hậu xử lý
+  float confidence = 3;          // Độ tin cậy ước tính (0.0 - 1.0)
+  string language = 4;           // Ngôn ngữ được phát hiện hoặc yêu cầu
+  float inference_time_ms = 5;   // Thời gian xử lý (milliseconds)
+  float audio_duration_s = 6;    // Thời lượng audio đầu vào (seconds)
+  bool is_empty = 7;             // True nếu kết quả nhận dạng là trống
+  float audio_energy = 8;        // Năng lượng trung bình của audio
+}
+
+// Service nhận dạng giọng nói
+service SpeechRecognition {
+  rpc Recognize(RecognizeRequest) returns (RecognizeResponse);
+} 

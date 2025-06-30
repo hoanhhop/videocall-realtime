@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  phowhisper:
+    environment:
+      - USE_CUDA=false
+      - OMP_NUM_THREADS=4
+      - LOW_MEMORY=true
+      - CPU_THREADS=8
+      - MAX_WORKERS=2
+      - LOG_LEVEL=WARNING
+      - PYTHONUNBUFFERED=1
+      - VAD_FILTER=true
+    volumes:
+      # Giảm thiểu cache
+      - phowhisper-cache:/root/.cache:delegated
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '3G'
+    restart: on-failure
+
+  translation:
+    environment:
+      - USE_CUDA=false
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+      - NUM_WORKERS=4
+      - CPU_THREADS=8 
+      - BATCH_SIZE=8
+      - MAX_QUEUE_SIZE=16
+      - LOG_LEVEL=WARNING
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Giảm thiểu cache
+      - translation-cache:/root/.cache:delegated
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '2G'
+    restart: on-failure
+
+  tts:
+    build:
+      context: ./server/services/tts
+      dockerfile: Dockerfile
+    environment:
+      - USE_CUDA=false
+      - USE_ONNX=false
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4 
+      - BATCH_SIZE=1
+      - SAMPLE_RATE=22050
+      - CHUNK_SIZE=120
+      - MAX_WORKERS=2
+      - LOW_MEMORY=true
+      - LOG_LEVEL=WARNING
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_NO_CUDA_MEMORY_CACHING=1
+    volumes:
+      # Giảm thiểu cache
+      - tts-cache:/root/.cache:delegated
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '3G'
+    restart: on-failure
+    
+  embeddings:
+    environment:
+      - USE_CUDA=false
+      - ENABLE_CACHE=false
+      - OMP_NUM_THREADS=2
+      - BATCH_SIZE=16
+      - LOG_LEVEL=WARNING
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Giảm cache
+      - embeddings-cache:/root/.cache:delegated
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
+    restart: on-failure
+
+  api:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+      - NODE_OPTIONS=--max-old-space-size=512
+    restart: on-failure
+
+  socket:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+      - NODE_OPTIONS=--max-old-space-size=512
+    restart: on-failure
+
+  redis:
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '256M'

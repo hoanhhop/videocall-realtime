@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.9
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - translation-network
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.api
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - translation-network
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`34.142.175.163`) && PathPrefix(`/api`)"
+      - "traefik.http.services.api-service.loadbalancer.server.port=3000"
+      - "traefik.http.routers.api.entrypoints=web"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - translation-network
+
+volumes:
+  redis-data:
+
+networks:
+  translation-network:
+    driver: bridge
